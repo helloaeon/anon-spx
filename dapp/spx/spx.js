@@ -126,11 +126,11 @@ async function assertWalletReady() {
 
 async function tokenBalance(owner, provider = state.identity?.provider) {
   const data = `0x${SELECTOR.balanceOf}${wordAddress(owner)}`;
-  return BigInt(await state.identity.provider.request({ method: 'eth_call', params: [{ to: TOKEN, data }, 'latest'] }) || '0x0');
+  return BigInt(await ux.ethCall(TOKEN, data) || '0x0');
 }
 async function allowance(owner) {
   const data = `0x${SELECTOR.allowance}${wordAddress(owner)}${wordAddress(ux.cfg.pool)}`;
-  return BigInt(await state.identity.provider.request({ method: 'eth_call', params: [{ to: TOKEN, data }, 'latest'] }) || '0x0');
+  return BigInt(await ux.ethCall(TOKEN, data) || '0x0');
 }
 async function refreshAll() {
   if (!state.walletPriv) return;
