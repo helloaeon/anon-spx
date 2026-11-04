@@ -300,8 +300,8 @@ async function sendPrivate() {
   finally { busy(false); }
 }
 
-async async function renderSentPayments() {
-  const mine = state.identity ? stealthStore.list().filter((rec) => String(rec.senderPubHex || '').toLowerCase() === String(state.identity.pubHex).toLowerCase()) : []; let open = mine;let open = mine;
+async function renderSentPayments() {
+  const mine = state.identity ? stealthStore.list().filter((rec) => String(rec.senderPubHex || '').toLowerCase() === String(state.identity.pubHex).toLowerCase()) : []; let open = mine;
   const box = $('sent-payments'), list = $('sent-payment-list');
   if(mine.length){try{const{sent}=await ux.scanSentLocks({walletPriv:state.walletPriv});const spent=new Set((sent||[]).filter(item=>item.spent===true).map(item=>String(item.leaf).toLowerCase()));for(const rec of mine)if(spent.has(String(rec.lockLeaf).toLowerCase()))stealthStore.remove(rec.lockLeaf);open=mine.filter(rec=>!spent.has(String(rec.lockLeaf).toLowerCase()))}catch(e){const warning=document.createElement('p');warning.className='activity-empty';warning.textContent=`Could not refresh payment status: ${e?.message||String(e)}`;list.append(warning)}}box.hidden=!open.length&&!list.childElementCount;
   list.replaceChildren();
