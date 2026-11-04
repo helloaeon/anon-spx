@@ -47,7 +47,7 @@ function busy(on) {
   $('send-btn').disabled = on;
   $('connect-btn').disabled = on;
 }
-function pendingKey() { return `spx:v1:pending-wrap:${state.identity?.pubHex || ''}`; }
+function activityKey(){return `spx:v1:activity:${state.identity?.pubHex||''}`}function readActivity(){try{return JSON.parse(localStorage.getItem(activityKey())||'[]').slice(0,50)}catch{return[]}}function recordActivity(action,amount,txHash=''){if(!state.identity)return;const entries=[{action,amount:String(amount),txHash:String(txHash||''),timestamp:Date.now()},...readActivity()].slice(0,50);try{localStorage.setItem(activityKey(),JSON.stringify(entries))}catch{}renderActivity()}function renderActivity(){if(!state.identity||!$('activity-list'))return;const entries=readActivity(),list=$('activity-list');list.replaceChildren();$('activity-empty').hidden=Boolean(entries.length);for(const entry of entries){const row=document.createElement('div');row.className='activity-row';const details=document.createElement('div');details.className='activity-details';const label=document.createElement('strong');label.textContent=`${entry.action} · ${fmtUnits(entry.amount)} SPX`;const date=document.createElement('time');date.dateTime=new Date(entry.timestamp).toISOString();date.textContent=new Date(entry.timestamp).toLocaleString();details.append(label,date);row.append(details);if(entry.txHash){const link=document.createElement('a');link.href=`https://etherscan.io/tx/${encodeURIComponent(entry.txHash)}`;link.target='_blank';link.rel='noreferrer';link.textContent=`${entry.txHash.slice(0,8)}…${entry.txHash.slice(-6)}`;link.setAttribute('aria-label',`View ${entry.action} transaction on Etherscan`);row.append(link)}list.append(row)}}function pendingKey() { return `spx:v1:pending-wrap:${state.identity?.pubHex || ''}`; }
 function readPending() { try { return JSON.parse(localStorage.getItem(pendingKey()) || 'null'); } catch { return null; } }
 function savePending(p) { try { p ? localStorage.setItem(pendingKey(), JSON.stringify(p)) : localStorage.removeItem(pendingKey()); } catch { } }
 function renderPending() {
@@ -189,7 +189,7 @@ async function shield() {
     renderPending();
     await waitTransaction(wrapHash, 'SPX deposit');
     setStatus('Deposit confirmed. Sending the note proof to Tacit’s relay for settlement…');
-    await ux.submitWrapSettle({ built, depositTx: wrapHash });
+    await ux.submitWrapSettle({ built, depositTx: wrapHash }); recordActivity('Shielded', amount, wrapHash);
     savePending(null); renderPending();
     setStatus('SPX shielded. Your private note has settled.', 'ok');
     $('shield-amount').value = '';
@@ -221,7 +221,7 @@ async function resumePending() {
     setStatus('Rebuilding the same note and resuming relay settlement…');
     await ux.waitReceipt(p.txHash);
     const built = ux.buildWrap({ walletPriv: state.walletPriv, amountWei: p.amount, ticker: TICKER, index: Number(p.index) });
-    await ux.submitWrapSettle({ built, depositTx: p.txHash });
+    await ux.submitWrapSettle({ built, depositTx: p.txHash }); recordActivity('Shielded', p.amount, p.txHash);
     savePending(null); renderPending();
     setStatus('SPX shielded. Your private note has settled.', 'ok');
     await refreshAll();
@@ -247,7 +247,7 @@ async function withdraw() {
     const recipient = $('recipient').value.trim();
     if (!/^0x[0-9a-fA-F]{40}$/.test(recipient) || /^0x0{40}$/i.test(recipient)) throw new Error('Enter a valid non-zero Ethereum address.');
     setStatus('Proving the withdrawal and waiting for the relay to submit it…');
-    const result = await ux.sendUnwrap({ note, walletPriv: state.walletPriv, recipient, amount, waitOpts: { timeoutMs: 15 * 60 * 1000 } });
+    const result = await ux.sendUnwrap({ note, walletPriv: state.walletPriv, recipient, amount, waitOpts: { timeoutMs: 15 * 60 * 1000 } }); recordActivity('Withdrew', amount, result?.txHash);
     const fee = result.fee != null ? ` Relay fee: ${fmtUnits(result.fee)} SPX.` : '';
     setStatus(`Withdrawal settled${result.txHash ? `: ${result.txHash}` : '.'}${fee}`, 'ok');
     await refreshAll();
@@ -284,7 +284,7 @@ async function sendPrivate() {
         });
       },
     });
-    const saved = savePromise ? await savePromise : { persisted: false };
+    const saved = savePromise ? await savePromise : { persisted: false }; recordActivity('Sent privately', amount, result?.txHash);
     const deadline = built ? new Date(Number(built.deadline) * 1000).toLocaleString() : 'after the claim deadline';
     const recovery = saved.persisted ? ` Unclaimed funds can be refunded after ${deadline}.` : ' The encrypted local refund record could not be saved; keep this browser open and recover from this device if needed.';
     setStatus(`Private SPX payment sent${result?.txHash ? `: ${result.txHash}` : '.'} Share your Tacit address with the recipient so they can scan and claim it.${recovery}`, saved.persisted ? 'ok' : 'error');
@@ -300,12 +300,12 @@ async function sendPrivate() {
   finally { busy(false); }
 }
 
-function renderSentPayments() {
-  const mine = state.identity ? stealthStore.list().filter((rec) => String(rec.senderPubHex || '').toLowerCase() === String(state.identity.pubHex).toLowerCase()) : [];
+async async function renderSentPayments() {
+  const mine = state.identity ? stealthStore.list().filter((rec) => String(rec.senderPubHex || '').toLowerCase() === String(state.identity.pubHex).toLowerCase()) : []; let open = mine;let open = mine;
   const box = $('sent-payments'), list = $('sent-payment-list');
-  box.hidden = !mine.length;
+  if(mine.length){try{const{sent}=await ux.scanSentLocks({walletPriv:state.walletPriv});const spent=new Set((sent||[]).filter(item=>item.spent===true).map(item=>String(item.leaf).toLowerCase()));for(const rec of mine)if(spent.has(String(rec.lockLeaf).toLowerCase()))stealthStore.remove(rec.lockLeaf);open=mine.filter(rec=>!spent.has(String(rec.lockLeaf).toLowerCase()))}catch(e){const warning=document.createElement('p');warning.className='activity-empty';warning.textContent=`Could not refresh payment status: ${e?.message||String(e)}`;list.append(warning)}}box.hidden=!open.length&&!list.childElementCount;
   list.replaceChildren();
-  for (const [index, rec] of mine.entries()) {
+  for (const [index, rec] of open.entries()) {
     const row = document.createElement('div'); row.className = 'sent-payment';
     const info = document.createElement('span');
     const deadline = Number(rec.deadline) * 1000;
@@ -355,7 +355,7 @@ $('withdraw-btn').addEventListener('click', withdraw);
 $('send-btn').addEventListener('click', sendPrivate);
 $('tab-shield').addEventListener('click', () => setTab('shield'));
 $('tab-withdraw').addEventListener('click', () => setTab('withdraw'));
-$('tab-send').addEventListener('click', () => setTab('send'));
+$('tab-send').addEventListener('click', () => { setTab('send'); renderSentPayments(); });
 $('refresh-btn').addEventListener('click', async () => {
   if (!state.walletPriv) return setStatus('Connect your wallet first.');
   busy(true); setStatus('Scanning the V1 pool for your private SPX notes…');
@@ -375,7 +375,7 @@ $('send-refresh-btn').addEventListener('click', async () => {
   catch (e) { setStatus(e?.message || String(e), 'error'); }
   finally { busy(false); }
 });
-$('sent-refresh-btn').addEventListener('click', renderSentPayments); $('incoming-close').addEventListener('click',()=> $('incoming-dialog').close()); $('incoming-done').addEventListener('click',()=> $('incoming-dialog').close()); $('incoming-open').addEventListener('click',()=>{if(state.walletPriv)$('incoming-dialog').showModal()}); $('incoming-dialog').addEventListener('click',event=>{if(event.target===$('incoming-dialog'))$('incoming-dialog').close()}); $('incoming-refresh').addEventListener('click',async()=>{if(!state.walletPriv||state.statusBusy)return;busy(true);$('incoming-refresh').disabled=true;$('incoming-refresh').textContent='Scanning…';try{await refreshAll()}finally{busy(false);$('incoming-refresh').disabled=false;$('incoming-refresh').textContent='Scan again'}});
+$('sent-refresh-btn').addEventListener('click', renderSentPayments); document.addEventListener('visibilitychange', () => { if (!document.hidden && state.walletPriv && !$('panel-send').hidden) renderSentPayments(); }); setInterval(() => { if (!document.hidden && state.walletPriv && !state.statusBusy && !$('panel-send').hidden) renderSentPayments(); }, 30000); $('incoming-close').addEventListener('click',()=> $('incoming-dialog').close()); $('incoming-done').addEventListener('click',()=> $('incoming-dialog').close()); $('incoming-open').addEventListener('click',()=>{if(state.walletPriv)$('incoming-dialog').showModal()}); $('incoming-dialog').addEventListener('click',event=>{if(event.target===$('incoming-dialog'))$('incoming-dialog').close()}); $('incoming-refresh').addEventListener('click',async()=>{if(!state.walletPriv||state.statusBusy)return;busy(true);$('incoming-refresh').disabled=true;$('incoming-refresh').textContent='Scanning…';try{await refreshAll()}finally{busy(false);$('incoming-refresh').disabled=false;$('incoming-refresh').textContent='Scan again'}});
 $('recipient-me').addEventListener('click', () => { if (state.identity) $('recipient').value = `0x${state.identity.address}`; });
 $('private-address').addEventListener('click', async () => {
   if (!state.account) return;
