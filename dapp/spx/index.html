@@ -34,7 +34,7 @@
         <div class="tabs" role="tablist" aria-label="SPX action">
           <button class="tab active" id="tab-shield" role="tab" aria-selected="true" aria-controls="panel-shield">Shield</button>
           <button class="tab" id="tab-withdraw" role="tab" aria-selected="false" aria-controls="panel-withdraw">Withdraw</button>
-          <button class="tab" id="tab-send" role="tab" aria-selected="false" aria-controls="panel-send">Send</button>
+          <button class="tab" id="tab-send" role="tab" aria-selected="false" aria-controls="panel-send">Send</button> <button class="tab" id="tab-activity" role="tab" aria-selected="false" aria-controls="panel-activity">Activity</button>
         </div>
 
         <div class="panel" id="panel-shield" role="tabpanel" aria-labelledby="tab-shield">
@@ -69,7 +69,7 @@
           <div class="sent-payments" id="sent-payments" hidden><div class="field-label"><span>Sent payments</span><button class="text-button" id="sent-refresh-btn" type="button">REFRESH</button></div><div id="sent-payment-list"></div></div>
         </div>
 
-        <div class="status" id="status" role="status" aria-live="polite">Connect an Ethereum wallet to get started.</div>
+        <div class="panel" id="panel-activity" role="tabpanel" aria-labelledby="tab-activity" hidden><div class="field-label"><span>Recent activity</span><button class="text-button" id="activity-refresh-btn" type="button">REFRESH</button></div><p class="activity-empty" id="activity-empty">Your recent SPX actions will appear here on this device.</p><div id="activity-list" class="activity-list"></div></div><div class="status" id="status" role="status" aria-live="polite">Connect an Ethereum wallet to get started.</div>
         <div class="pending" id="pending" hidden></div>
       </section>
 
