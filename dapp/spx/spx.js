@@ -124,17 +124,17 @@ async function assertWalletReady() {
   return provider;
 }
 
-async function tokenBalance(owner) {
+async function tokenBalance(owner, provider = state.identity?.provider) {
   const data = `0x${SELECTOR.balanceOf}${wordAddress(owner)}`;
-  return BigInt(await ux.ethCall(TOKEN, data) || '0x0');
+  return BigInt(await state.identity.provider.request({ method: 'eth_call', params: [{ to: TOKEN, data }, 'latest'] }) || '0x0');
 }
 async function allowance(owner) {
   const data = `0x${SELECTOR.allowance}${wordAddress(owner)}${wordAddress(ux.cfg.pool)}`;
-  return BigInt(await ux.ethCall(TOKEN, data) || '0x0');
+  return BigInt(await state.identity.provider.request({ method: 'eth_call', params: [{ to: TOKEN, data }, 'latest'] }) || '0x0');
 }
 async function refreshAll() {
   if (!state.walletPriv) return;
-  const [publicBalance, scan] = await Promise.all([tokenBalance(`0x${state.identity.address}`), ux.balance(state.walletPriv)]);
+  const publicBalance = await tokenBalance(`0x${state.identity.address}`); state.walletBalance = publicBalance; $('wallet-balance').textContent = `${fmtUnits(publicBalance)} SPX`; const scan = await ux.balance(state.walletPriv);
   state.walletBalance = publicBalance;
   state.notes = (scan.notes || []).filter((n) => String(n.asset).toLowerCase() === String(asset.assetId).toLowerCase());
   const privateBalance = state.notes.reduce((n, note) => n + BigInt(note.value), 0n);
