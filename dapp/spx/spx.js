@@ -17,7 +17,7 @@ const ux = makeConfidentialPoolUx({ secp, keccak256: keccak_256, sha256, network
 const tacitCodec = makeTacitAddress({ secp });
 const stealthStore = makeStealthSendStore({ sha256 });
 const asset = ux.assetByTicker[TICKER];
-const state = { identity: null, walletPriv: null, account: null, tacitAddress: '', notes: [], walletBalance: 0n, statusBusy: false };
+const state = { identity: null, walletPriv: null, account: null, tacitAddress: '', notes: [], incomingLocks: [], lockSetRoot: null, promptedIncoming: new Set(), walletBalance: 0n, statusBusy: false };
 
 if (!asset || asset.underlying?.toLowerCase() !== TOKEN.toLowerCase() || !asset.live) {
   $('status').dataset.tone = 'error';
@@ -76,7 +76,7 @@ async function connect() {
     state.account = ux.account(walletPriv);
     state.tacitAddress = unifiedAddress(walletPriv).address;
     $('connect-btn').textContent = 'Lock wallet';
-    $('tacit-address').hidden = false;
+    $('tacit-address').hidden = false; $('incoming-open').hidden = false;
     $('tacit-address').textContent = fmtTacit(state.tacitAddress);
     $('tacit-address').title = `Copy Tacit address: ${state.tacitAddress}`;
     $('tacit-address').setAttribute('aria-label', `Copy Tacit address ${state.tacitAddress}`);
@@ -99,7 +99,7 @@ async function connect() {
 function lockWallet() {
   try { state.walletPriv?.fill(0); } catch { }
   if (state.identity) state.identity.priv = '';
-  state.identity = null; state.walletPriv = null; state.account = null; state.notes = []; state.walletBalance = 0n;
+  state.identity = null; state.walletPriv = null; state.account = null; state.notes = []; state.walletBalance = 0n; state.incomingLocks = []; state.lockSetRoot = null; state.promptedIncoming.clear(); $('incoming-open').hidden = true; $('incoming-dialog').close();
   state.tacitAddress = '';
   $('connect-btn').textContent = 'Connect wallet';
   $('tacit-address').hidden = true; $('tacit-address').textContent = ''; $('tacit-address').title = 'Copy your Tacit address'; $('tacit-address').setAttribute('aria-label', 'Copy your Tacit address');
@@ -147,11 +147,11 @@ async function refreshAll() {
     ? state.notes.map((n, i) => `<option value="${i}">${fmtUnits(n.value)} SPX · note ${i + 1}</option>`).join('')
     : '<option value="">No private SPX notes found</option>';
   if (state.notes.length) $('withdraw-amount').value = fmtUnits(state.notes[0].value, DECIMALS, DECIMALS);
-  if (state.notes.length) $('send-amount').value = fmtUnits(state.notes[0].value, DECIMALS, DECIMALS);
+  if (state.notes.length) $('send-amount').value = fmtUnits(state.notes[0].value, DECIMALS, DECIMALS); try { const lockScan = await ux.scanStealthLocks({ walletPriv: state.walletPriv }); state.lockSetRoot = lockScan.lockSetRoot; state.incomingLocks = (lockScan.mine || []).filter((lock) => String(lock.asset).toLowerCase() === String(asset.assetId).toLowerCase() && lock.spent !== true); renderIncomingClaims(true); } catch (e) { state.incomingLocks = []; state.lockSetRoot = null; renderIncomingClaims(false, e?.message || String(e)); }
   renderPending();
 }
 
-function selectedNote() { const i = Number($('note-select').value); return Number.isInteger(i) ? state.notes[i] || null : null; }
+function renderIncomingClaims(prompt=false,scanError=''){const dialog=$('incoming-dialog'),list=$('incoming-list'),count=state.incomingLocks.length;list.replaceChildren();$('incoming-count').textContent=count?`${count} private SPX payment${count===1?'':'s'} waiting`:(scanError?'Incoming payments could not be checked':'No incoming SPX payments found');if(scanError){const error=document.createElement('p');error.className='incoming-error';error.textContent='Scan failed: '+scanError;list.append(error)}state.incomingLocks.forEach((lock,index)=>{const row=document.createElement('div');row.className='incoming-payment';const info=document.createElement('span');info.textContent=fmtUnits(lock.amount)+' SPX';const button=document.createElement('button');button.type='button';button.className='claim-payment';button.textContent='Claim SPX';button.addEventListener('click',()=>claimIncoming(index,button));row.append(info,button);list.append(row)});$('incoming-empty').hidden=Boolean(count||scanError);$('incoming-open').textContent=count?`Claim SPX (${count})`:'Payments';if(prompt&&count&&!dialog.open&&state.incomingLocks.some(lock=>!state.promptedIncoming.has(String(lock.leaf).toLowerCase()))){for(const lock of state.incomingLocks)state.promptedIncoming.add(String(lock.leaf).toLowerCase());dialog.showModal()}if(!count)state.promptedIncoming.clear()}async function claimIncoming(index,button){if(!state.walletPriv||state.statusBusy)return;const lock=state.incomingLocks[index];if(!lock||!state.lockSetRoot)return;busy(true);button.disabled=true;button.textContent='Claiming…';try{setStatus('Proving your incoming SPX claim and submitting it through Tacit V1…');const result=await ux.stealthClaim({walletPriv:state.walletPriv,lockRecord:lock,lockSetRoot:state.lockSetRoot,waitOpts:{timeoutMs:15*60*1000}});setStatus(`SPX claimed into your private balance${result?.txHash?`: ${result.txHash}`:'.'}`,'ok');state.promptedIncoming.delete(String(lock.leaf).toLowerCase());await refreshAll();if(!state.incomingLocks.length)$('incoming-dialog').close()}catch(e){setStatus(e?.message||String(e),'error');button.disabled=false;button.textContent='Claim SPX'}finally{busy(false)}}function selectedNote() { const i = Number($('note-select').value); return Number.isInteger(i) ? state.notes[i] || null : null; }
 function txHashLink(hash) { return hash; }
 async function waitTransaction(hash, label) {
   setStatus(`${label} submitted: ${txHashLink(hash)} — waiting for confirmation…`);
@@ -375,7 +375,7 @@ $('send-refresh-btn').addEventListener('click', async () => {
   catch (e) { setStatus(e?.message || String(e), 'error'); }
   finally { busy(false); }
 });
-$('sent-refresh-btn').addEventListener('click', renderSentPayments);
+$('sent-refresh-btn').addEventListener('click', renderSentPayments); $('incoming-close').addEventListener('click',()=> $('incoming-dialog').close()); $('incoming-done').addEventListener('click',()=> $('incoming-dialog').close()); $('incoming-open').addEventListener('click',()=>{if(state.walletPriv)$('incoming-dialog').showModal()}); $('incoming-dialog').addEventListener('click',event=>{if(event.target===$('incoming-dialog'))$('incoming-dialog').close()}); $('incoming-refresh').addEventListener('click',async()=>{if(!state.walletPriv||state.statusBusy)return;busy(true);$('incoming-refresh').disabled=true;$('incoming-refresh').textContent='Scanning…';try{await refreshAll()}finally{busy(false);$('incoming-refresh').disabled=false;$('incoming-refresh').textContent='Scan again'}});
 $('recipient-me').addEventListener('click', () => { if (state.identity) $('recipient').value = `0x${state.identity.address}`; });
 $('private-address').addEventListener('click', async () => {
   if (!state.account) return;
