@@ -14,7 +14,7 @@
   <div class="page-shell">
     <header class="topbar">
       <a class="brand" href="/spx/" aria-label="anon.spx private pool home"><img class="brand-logo" src="/spx/spx-logo.svg" alt=""><span>anon<span class="brand-dot">.</span>spx</span></a>
-      <div class="top-actions"><span class="network"><i></i> Ethereum mainnet</span><button class="tacit-address" id="tacit-address" type="button" hidden title="Open account details"></button><button class="connect" id="connect-btn" type="button">Connect wallet</button></div>
+      <div class="top-actions"><span class="network"><i></i> Ethereum mainnet</span><button class="incoming-open" id="incoming-open" type="button" hidden>Payments</button><button class="tacit-address" id="tacit-address" type="button" hidden title="Open account details"></button><button class="connect" id="connect-btn" type="button">Connect wallet</button></div>
     </header>
 
     <main>
@@ -83,7 +83,7 @@
 
     <footer><span>SPX private pool</span><span>Powered by <a href="https://github.com/src-company/tacit" target="_blank" rel="noreferrer">Tacit V1</a></span><a href="https://github.com/src-company/tacit/blob/main/docs/BUILD-A-TACIT-DAPP.md" target="_blank" rel="noreferrer">Integration notes ↗</a></footer>
   </div>
-  <dialog class="account-dialog" id="account-dialog" aria-labelledby="account-title">
+  <dialog class="incoming-dialog" id="incoming-dialog" aria-labelledby="incoming-title"><div class="incoming-dialog-inner"><div class="incoming-dialog-head"><div><h2 id="incoming-title">Incoming SPX</h2><p id="incoming-count">Checking for private payments…</p></div><button class="incoming-close" id="incoming-close" type="button" aria-label="Close incoming payments">×</button></div><p class="incoming-empty" id="incoming-empty" hidden>When someone sends SPX to your Tacit address, it will appear here for you to claim.</p><div id="incoming-list" class="incoming-list"></div><div class="incoming-actions"><button id="incoming-refresh" type="button">Scan again</button><button id="incoming-done" type="button">Done</button></div></div></dialog>  <dialog class="account-dialog" id="account-dialog" aria-labelledby="account-title">
     <div class="account-dialog-inner">
       <div class="account-dialog-head"><h2 id="account-title">Account</h2><button class="account-close" id="account-close" type="button" aria-label="Close account dialog">×</button></div>
       <div class="account-address" id="account-full-address"></div>
