@@ -128,7 +128,7 @@ export function makeConfidentialPoolUx({ secp, keccak256, sha256, fetchImpl, net
   function account(walletPriv) { return evm.deriveEvmAccount(walletPriv, cfg.evmNetwork); }
 
   const RPC_COOL_MS = 60000;
-  const _eps = cfg.rpcs.map((url) => ({ url, coolUntil: 0, span: Infinity }));
+  const _eps = cfg.rpcs.map((url) => ({ url, coolUntil: 0, span: 1000 }));
   const _byHealth = () => { const now = Date.now(); return [..._eps.filter((e) => e.coolUntil <= now), ..._eps.filter((e) => e.coolUntil > now)]; };
   async function _post(ep, method, params, ms = 10000) {
     let r;
