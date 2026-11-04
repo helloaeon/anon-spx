@@ -47,7 +47,7 @@ function busy(on) {
   $('send-btn').disabled = on;
   $('connect-btn').disabled = on;
 }
-function activityKey(){return `spx:v1:activity:${state.identity?.pubHex||''}`}function readActivity(){try{return JSON.parse(localStorage.getItem(activityKey())||'[]').slice(0,50)}catch{return[]}}function recordActivity(action,amount,txHash=''){if(!state.identity)return;const entries=[{action,amount:String(amount),txHash:String(txHash||''),timestamp:Date.now()},...readActivity()].slice(0,50);try{localStorage.setItem(activityKey(),JSON.stringify(entries))}catch{}renderActivity()}function renderActivity(){if(!state.identity||!$('activity-list'))return;const entries=readActivity(),list=$('activity-list');list.replaceChildren();$('activity-empty').hidden=Boolean(entries.length);for(const entry of entries){const row=document.createElement('div');row.className='activity-row';const details=document.createElement('div');details.className='activity-details';const label=document.createElement('strong');label.textContent=`${entry.action} · ${fmtUnits(entry.amount)} SPX`;const date=document.createElement('time');date.dateTime=new Date(entry.timestamp).toISOString();date.textContent=new Date(entry.timestamp).toLocaleString();details.append(label,date);row.append(details);if(entry.txHash){const link=document.createElement('a');link.href=`https://etherscan.io/tx/${encodeURIComponent(entry.txHash)}`;link.target='_blank';link.rel='noreferrer';link.textContent=`${entry.txHash.slice(0,8)}…${entry.txHash.slice(-6)}`;link.setAttribute('aria-label',`View ${entry.action} transaction on Etherscan`);row.append(link)}list.append(row)}}function pendingKey() { return `spx:v1:pending-wrap:${state.identity?.pubHex || ''}`; }
+function activityKey(){return `spx:v1:activity:${state.identity?.pubHex||''}`}function readActivity(){try{return JSON.parse(sessionStorage.getItem(activityKey())||'[]').slice(0,50)}catch{return[]}}function recordActivity(action,amount,txHash='',status='Complete'){if(!state.identity)return;const entries=readActivity();const prior=entries.findIndex(e=>e.action===action&&String(e.amount)===String(amount)&&e.status==='In progress');const entry={action,amount:String(amount),txHash:String(txHash||''),timestamp:Date.now(),status};if(prior>=0)entries.splice(prior,1);entries.unshift(entry);try{sessionStorage.setItem(activityKey(),JSON.stringify(entries.slice(0,50)))}catch{}renderActivity()}function renderActivity(){if(!state.identity||!$('activity-list'))return;const entries=readActivity(),list=$('activity-list');list.replaceChildren();$('activity-empty').hidden=Boolean(entries.length);for(const entry of entries){const row=document.createElement('div');row.className='activity-row';const details=document.createElement('div');details.className='activity-details';const label=document.createElement('strong');label.textContent=`${entry.action} · ${fmtUnits(entry.amount)} SPX`;const date=document.createElement('time');date.dateTime=new Date(entry.timestamp).toISOString();date.textContent=new Date(entry.timestamp).toLocaleString();const status=document.createElement('span');status.className='activity-status';status.textContent=entry.status||'Complete';details.append(label,status,date);row.append(details);if(entry.txHash){const link=document.createElement('a');link.href=`https://etherscan.io/tx/${encodeURIComponent(entry.txHash)}`;link.target='_blank';link.rel='noreferrer';link.textContent=`${entry.txHash.slice(0,8)}…${entry.txHash.slice(-6)}`;link.setAttribute('aria-label',`View ${entry.action} transaction on Etherscan`);row.append(link)}list.append(row)}}function pendingKey() { return `spx:v1:pending-wrap:${state.identity?.pubHex || ''}`; }
 function readPending() { try { return JSON.parse(localStorage.getItem(pendingKey()) || 'null'); } catch { return null; } }
 function savePending(p) { try { p ? localStorage.setItem(pendingKey(), JSON.stringify(p)) : localStorage.removeItem(pendingKey()); } catch { } }
 function renderPending() {
@@ -151,7 +151,7 @@ async function refreshAll() {
   renderPending();
 }
 
-function renderIncomingClaims(prompt=false,scanError=''){const dialog=$('incoming-dialog'),list=$('incoming-list'),count=state.incomingLocks.length;list.replaceChildren();$('incoming-count').textContent=count?`${count} private SPX payment${count===1?'':'s'} waiting`:(scanError?'Incoming payments could not be checked':'No incoming SPX payments found');if(scanError){const error=document.createElement('p');error.className='incoming-error';error.textContent='Scan failed: '+scanError;list.append(error)}state.incomingLocks.forEach((lock,index)=>{const row=document.createElement('div');row.className='incoming-payment';const info=document.createElement('span');info.textContent=fmtUnits(lock.amount)+' SPX';const button=document.createElement('button');button.type='button';button.className='claim-payment';button.textContent='Claim SPX';button.addEventListener('click',()=>claimIncoming(index,button));row.append(info,button);list.append(row)});$('incoming-empty').hidden=Boolean(count||scanError);$('incoming-open').textContent=count?`Claim SPX (${count})`:'Payments';if(prompt&&count&&!dialog.open&&state.incomingLocks.some(lock=>!state.promptedIncoming.has(String(lock.leaf).toLowerCase()))){for(const lock of state.incomingLocks)state.promptedIncoming.add(String(lock.leaf).toLowerCase());dialog.showModal()}if(!count)state.promptedIncoming.clear()}async function claimIncoming(index,button){if(!state.walletPriv||state.statusBusy)return;const lock=state.incomingLocks[index];if(!lock||!state.lockSetRoot)return;busy(true);button.disabled=true;button.textContent='Claiming…';try{setStatus('Proving your incoming SPX claim and submitting it through Tacit V1…');const result=await ux.stealthClaim({walletPriv:state.walletPriv,lockRecord:lock,lockSetRoot:state.lockSetRoot,waitOpts:{timeoutMs:15*60*1000}});setStatus(`SPX claimed into your private balance${result?.txHash?`: ${result.txHash}`:'.'}`,'ok');state.promptedIncoming.delete(String(lock.leaf).toLowerCase());await refreshAll();if(!state.incomingLocks.length)$('incoming-dialog').close()}catch(e){setStatus(e?.message||String(e),'error');button.disabled=false;button.textContent='Claim SPX'}finally{busy(false)}}function selectedNote() { const i = Number($('note-select').value); return Number.isInteger(i) ? state.notes[i] || null : null; }
+function renderIncomingClaims(prompt=false,scanError=''){const dialog=$('incoming-dialog'),list=$('incoming-list'),count=state.incomingLocks.length;list.replaceChildren();$('incoming-count').textContent=count?`${count} private SPX payment${count===1?'':'s'} waiting`:(scanError?'Incoming payments could not be checked':'No incoming SPX payments found');if(scanError){const error=document.createElement('p');error.className='incoming-error';error.textContent='Scan failed: '+scanError;list.append(error)}state.incomingLocks.forEach((lock,index)=>{const row=document.createElement('div');row.className='incoming-payment';const info=document.createElement('span');info.textContent=fmtUnits(lock.amount)+' SPX';const button=document.createElement('button');button.type='button';button.className='claim-payment';button.textContent='Claim SPX';button.addEventListener('click',()=>claimIncoming(index,button));row.append(info,button);list.append(row)});$('incoming-empty').hidden=Boolean(count||scanError);$('incoming-open').textContent=count?`Claim SPX (${count})`:'Payments';if(prompt&&count&&!dialog.open&&state.incomingLocks.some(lock=>!state.promptedIncoming.has(String(lock.leaf).toLowerCase()))){for(const lock of state.incomingLocks)state.promptedIncoming.add(String(lock.leaf).toLowerCase());dialog.showModal()}if(!count)state.promptedIncoming.clear()}async function claimIncoming(index,button){if(!state.walletPriv||state.statusBusy)return;const lock=state.incomingLocks[index];if(!lock||!state.lockSetRoot)return;busy(true);button.disabled=true;button.textContent='Claiming…';try{setStatus('Proving your incoming SPX claim and submitting it through Tacit V1…');const result=await ux.stealthClaim({walletPriv:state.walletPriv,lockRecord:lock,lockSetRoot:state.lockSetRoot,waitOpts:{timeoutMs:15*60*1000}});recordActivity('Claim',lock.amount,result?.txHash);setStatus(`SPX claimed into your private balance${result?.txHash?`: ${result.txHash}`:'.'}`,'ok');state.promptedIncoming.delete(String(lock.leaf).toLowerCase());await refreshAll();if(!state.incomingLocks.length)$('incoming-dialog').close()}catch(e){setStatus(e?.message||String(e),'error');button.disabled=false;button.textContent='Claim SPX'}finally{busy(false)}}function selectedNote() { const i = Number($('note-select').value); return Number.isInteger(i) ? state.notes[i] || null : null; }
 function txHashLink(hash) { return hash; }
 async function waitTransaction(hash, label) {
   setStatus(`${label} submitted: ${txHashLink(hash)} — waiting for confirmation…`);
@@ -173,7 +173,7 @@ async function shield() {
     const amount = parseUnits($('shield-amount').value);
     if (amount <= 0n) throw new Error('Enter an amount greater than zero.');
     if (state.walletBalance < amount) throw new Error(`The connected wallet holds ${fmtUnits(state.walletBalance)} SPX.`);
-    setStatus('Preparing your private note and checking token approval…');
+    recordActivity('Shield',amount,'','In progress');setStatus('Preparing your private note and checking token approval…');
     const index = await ux.nextWrapIndex({ walletPriv: state.walletPriv, ticker: TICKER });
     built = ux.buildWrap({ walletPriv: state.walletPriv, amountWei: amount.toString(), ticker: TICKER, index });
     if (await allowance(`0x${state.identity.address}`) < amount) {
@@ -185,11 +185,11 @@ async function shield() {
     wrapHash = await provider.request({ method: 'eth_sendTransaction', params: [{
       from: `0x${state.identity.address}`, to: ux.cfg.pool, value: '0x0', data: built.calldata,
     }] });
-    savePending({ txHash: wrapHash, amount: amount.toString(), index });
+recordActivity('Shield', amount, wrapHash, 'In progress'); savePending({ txHash: wrapHash, amount: amount.toString(), index });
     renderPending();
     await waitTransaction(wrapHash, 'SPX deposit');
     setStatus('Deposit confirmed. Sending the note proof to Tacit’s relay for settlement…');
-    await ux.submitWrapSettle({ built, depositTx: wrapHash }); recordActivity('Shielded', amount, wrapHash);
+    await ux.submitWrapSettle({ built, depositTx: wrapHash }); recordActivity('Shield', amount, wrapHash);
     savePending(null); renderPending();
     setStatus('SPX shielded. Your private note has settled.', 'ok');
     $('shield-amount').value = '';
@@ -221,7 +221,7 @@ async function resumePending() {
     setStatus('Rebuilding the same note and resuming relay settlement…');
     await ux.waitReceipt(p.txHash);
     const built = ux.buildWrap({ walletPriv: state.walletPriv, amountWei: p.amount, ticker: TICKER, index: Number(p.index) });
-    await ux.submitWrapSettle({ built, depositTx: p.txHash }); recordActivity('Shielded', p.amount, p.txHash);
+    await ux.submitWrapSettle({ built, depositTx: p.txHash }); recordActivity('Shield', p.amount, p.txHash);
     savePending(null); renderPending();
     setStatus('SPX shielded. Your private note has settled.', 'ok');
     await refreshAll();
@@ -246,8 +246,8 @@ async function withdraw() {
     if (amount <= 0n || amount > BigInt(note.value)) throw new Error('Choose an amount up to the selected note balance.');
     const recipient = $('recipient').value.trim();
     if (!/^0x[0-9a-fA-F]{40}$/.test(recipient) || /^0x0{40}$/i.test(recipient)) throw new Error('Enter a valid non-zero Ethereum address.');
-    setStatus('Proving the withdrawal and waiting for the relay to submit it…');
-    const result = await ux.sendUnwrap({ note, walletPriv: state.walletPriv, recipient, amount, waitOpts: { timeoutMs: 15 * 60 * 1000 } }); recordActivity('Withdrew', amount, result?.txHash);
+    recordActivity('Withdrawal',amount,'','In progress');setStatus('Proving the withdrawal and waiting for the relay to submit it…');
+    const result = await ux.sendUnwrap({ note, walletPriv: state.walletPriv, recipient, amount, waitOpts: { timeoutMs: 15 * 60 * 1000 } }); recordActivity('Withdrawal', amount, result?.txHash);
     const fee = result.fee != null ? ` Relay fee: ${fmtUnits(result.fee)} SPX.` : '';
     setStatus(`Withdrawal settled${result.txHash ? `: ${result.txHash}` : '.'}${fee}`, 'ok');
     await refreshAll();
@@ -270,7 +270,7 @@ async function sendPrivate() {
     if (decoded.network !== 'mainnet') throw new Error('Recipient address must use the Ethereum mainnet Tacit network.');
     if (!decoded.lanes.evm?.ownerPub) throw new Error('Recipient Tacit address must include an Ethereum lane.');
     const recipientPubHex = bytesHex(decoded.lanes.evm.ownerPub);
-    setStatus('Creating a one-time claimable SPX payment and submitting it through Tacit V1…');
+    recordActivity('Send',amount,'','In progress');setStatus('Creating a one-time claimable SPX payment and submitting it through Tacit V1…');
     const result = await ux.stealthSend({
       walletPriv: state.walletPriv, recipientPubHex, notes: [note], amount,
       waitOpts: { timeoutMs: 15 * 60 * 1000 }, onBuilt: (record) => {
@@ -284,7 +284,7 @@ async function sendPrivate() {
         });
       },
     });
-    const saved = savePromise ? await savePromise : { persisted: false }; recordActivity('Sent privately', amount, result?.txHash);
+    const saved = savePromise ? await savePromise : { persisted: false }; recordActivity('Send', amount, result?.txHash);
     const deadline = built ? new Date(Number(built.deadline) * 1000).toLocaleString() : 'after the claim deadline';
     const recovery = saved.persisted ? ` Unclaimed funds can be refunded after ${deadline}.` : ' The encrypted local refund record could not be saved; keep this browser open and recover from this device if needed.';
     setStatus(`Private SPX payment sent${result?.txHash ? `: ${result.txHash}` : '.'} Share your Tacit address with the recipient so they can scan and claim it.${recovery}`, saved.persisted ? 'ok' : 'error');
