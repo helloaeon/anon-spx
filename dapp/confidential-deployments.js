@@ -7,7 +7,7 @@ const SEPOLIA_RPCS = [
   'https://sepolia.gateway.tenderly.co',
 ];
 const MAINNET_RPCS = [
-  'https://mainnet.gateway.tenderly.co',
+  'https://ethereum-rpc.publicnode.com', 'https://mainnet.gateway.tenderly.co',
   'https://eth.drpc.org',
   'https://1rpc.io/eth',
 ];
