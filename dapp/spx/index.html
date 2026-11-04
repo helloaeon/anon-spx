@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#11110f">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' https://api.tacit.finance https://mainnet.gateway.tenderly.co https://eth.drpc.org https://1rpc.io https://ethereum-rpc.publicnode.com wss://relay.walletconnect.org https://verify.walletconnect.org https://verify.walletconnect.com; img-src 'self' data:; style-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <title>SPX private pool</title>
+  <meta name="description" content="Shield and withdraw SPX6900 through the Tacit V1 pool on Ethereum mainnet.">
+  <link rel="stylesheet" href="/spx/spx.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="/spx/" aria-label="anon.spx private pool home"><img class="brand-logo" src="/spx/spx-logo.svg" alt=""><span>anon<span class="brand-dot">.</span>spx</span></a>
+      <div class="top-actions"><span class="network"><i></i> Ethereum mainnet</span><button class="tacit-address" id="tacit-address" type="button" hidden title="Open account details"></button><button class="connect" id="connect-btn" type="button">Connect wallet</button></div>
+    </header>
+
+    <main>
+      <section class="intro">
+        <p class="eyebrow">SPX6900 · TACIT V1 · ETHEREUM</p>
+        <h1>Move SPX6900<br><em>the private way.</em></h1>
+        <p class="lede">Shield SPX into a private note, send it privately to another Tacit address, or withdraw it to an Ethereum address. Your notes are proved from your device and settled through Tacit’s existing V1 pool.</p>
+        <div class="proof-points"><span><i></i> One token</span><span><i></i> One chain</span><span><i></i> Your wallet keeps the key</span></div>
+      </section>
+
+      <section class="app-card" aria-label="SPX privacy actions">
+        <div class="card-head">
+          <div class="asset-lockup"><img class="coin" src="/spx/spx-coin.png" alt="SPX6900 coin logo"><div><h2>Private SPX</h2><p id="network-label">Ethereum mainnet · V1 pool</p></div></div>
+          <div class="private-balance"><span>PRIVATE BALANCE</span><strong id="private-balance">— <small>SPX</small></strong></div>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="SPX action">
+          <button class="tab active" id="tab-shield" role="tab" aria-selected="true" aria-controls="panel-shield">Shield</button>
+          <button class="tab" id="tab-withdraw" role="tab" aria-selected="false" aria-controls="panel-withdraw">Withdraw</button>
+          <button class="tab" id="tab-send" role="tab" aria-selected="false" aria-controls="panel-send">Send</button>
+        </div>
+
+        <div class="panel" id="panel-shield" role="tabpanel" aria-labelledby="tab-shield">
+          <div class="field-label"><label for="shield-amount">Amount</label><button class="text-button" id="shield-max" type="button">MAX</button></div>
+          <div class="amount-field"><input id="shield-amount" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="SPX amount to shield"><span>SPX</span></div>
+          <div class="balance-line"><span>Wallet balance</span><span id="wallet-balance">Connect wallet to view</span></div>
+          <div class="balance-line"><span>Private identity</span><button class="address-copy" id="private-address" type="button" disabled>Connect wallet</button></div>
+          <button class="primary-action" id="shield-btn" type="button">Shield SPX <span aria-hidden="true">↗</span></button>
+          <p class="form-note">Your wallet approves the exact amount, then deposits it into the registered SPX asset in Tacit V1. You’ll confirm each Ethereum transaction in your wallet.</p>
+        </div>
+
+        <div class="panel" id="panel-withdraw" role="tabpanel" aria-labelledby="tab-withdraw" hidden>
+          <div class="field-label"><label for="note-select">Private note</label><button class="text-button" id="refresh-btn" type="button">REFRESH</button></div>
+          <select id="note-select" aria-label="Choose a private SPX note"><option value="">Connect wallet to scan notes</option></select>
+          <div class="field-label withdraw-amount-label"><label for="withdraw-amount">Amount</label><button class="text-button" id="withdraw-max" type="button">MAX NOTE</button></div>
+          <div class="amount-field"><input id="withdraw-amount" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="SPX amount to withdraw"><span>SPX</span></div>
+          <div class="field-label recipient-label"><label for="recipient">Withdraw to</label><button class="text-button" id="recipient-me" type="button">MY WALLET</button></div>
+          <div class="amount-field recipient-field"><input id="recipient" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="0x…" aria-label="Ethereum withdrawal address"></div>
+          <button class="primary-action" id="withdraw-btn" type="button">Withdraw SPX <span aria-hidden="true">↗</span></button>
+          <p class="form-note">The relay proves and submits the withdrawal. Its fee is taken from the private amount; the recipient address is public on Ethereum.</p>
+        </div>
+
+        <div class="panel" id="panel-send" role="tabpanel" aria-labelledby="tab-send" hidden>
+          <div class="field-label"><label for="send-note-select">Private note</label><button class="text-button" id="send-refresh-btn" type="button">REFRESH</button></div>
+          <select id="send-note-select" aria-label="Choose a private SPX note"><option value="">Connect wallet to scan notes</option></select>
+          <div class="field-label withdraw-amount-label"><label for="send-amount">Amount</label><button class="text-button" id="send-max" type="button">MAX NOTE</button></div>
+          <div class="amount-field"><input id="send-amount" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="SPX amount to send"><span>SPX</span></div>
+          <div class="field-label recipient-label"><label for="send-recipient">Recipient Tacit address</label></div>
+          <div class="amount-field recipient-field"><input id="send-recipient" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="tacit1…" aria-label="Recipient Tacit unified address"></div>
+          <button class="primary-action" id="send-btn" type="button">Send SPX privately <span aria-hidden="true">↗</span></button>
+          <p class="form-note">The recipient needs their <code>tacit1…</code> address. Tacit creates a one-time claimable payment; share the transfer with them so they can scan and claim it. Unclaimed funds can be refunded to you after the 90-day deadline.</p>
+          <div class="sent-payments" id="sent-payments" hidden><div class="field-label"><span>Sent payments</span><button class="text-button" id="sent-refresh-btn" type="button">REFRESH</button></div><div id="sent-payment-list"></div></div>
+        </div>
+
+        <div class="status" id="status" role="status" aria-live="polite">Connect an Ethereum wallet to get started.</div>
+        <div class="pending" id="pending" hidden></div>
+      </section>
+
+      <section class="how-row">
+        <div><span class="step">01</span><h3>Connect</h3><p>Your wallet signs a free message to derive your Tacit private account.</p></div>
+        <div><span class="step">02</span><h3>Shield</h3><p>Approve SPX and deposit it into the V1 registry. A relay settles your private note.</p></div>
+        <div><span class="step">03</span><h3>Send and withdraw</h3><p>Pay another Tacit address privately, or withdraw SPX to an Ethereum address.</p></div>
+      </section>
+      <p class="local-note"><span class="local-dot"></span> Local preview · signed transactions still run on Ethereum mainnet</p>
+    </main>
+
+    <footer><span>SPX private pool</span><span>Powered by <a href="https://github.com/src-company/tacit" target="_blank" rel="noreferrer">Tacit V1</a></span><a href="https://github.com/src-company/tacit/blob/main/docs/BUILD-A-TACIT-DAPP.md" target="_blank" rel="noreferrer">Integration notes ↗</a></footer>
+  </div>
+  <dialog class="account-dialog" id="account-dialog" aria-labelledby="account-title">
+    <div class="account-dialog-inner">
+      <div class="account-dialog-head"><h2 id="account-title">Account</h2><button class="account-close" id="account-close" type="button" aria-label="Close account dialog">×</button></div>
+      <div class="account-address" id="account-full-address"></div>
+      <p class="account-description" id="account-description"></p>
+      <div class="account-actions"><button id="account-copy" type="button">Copy address</button><button id="account-signout" type="button">Sign out</button></div>
+      <div class="account-wallet"><span>Wallet</span><strong id="account-wallet-name"></strong></div>
+      <button class="account-switch" id="account-switch" type="button">Use another wallet</button>
+      <p class="account-reminder">Your wallet, or your key, opens these funds on any device. Keep both to yourself.</p>
+    </div>
+  </dialog>
+  <script type="module" src="/spx/spx.js"></script>
+</body>
+</html>

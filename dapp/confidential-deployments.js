@@ -58,6 +58,7 @@ const EXTERNAL_ERC20_MAINNET = [
   { ticker: 'USDC', address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', decimals: 6 },
   { ticker: 'USDT', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', decimals: 6 },
   { ticker: 'wstETH', address: '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0', decimals: 18 },
+  { ticker: 'SPX', address: '0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C', decimals: 8 },
 ];
 const EXTERNAL_ERC20_SEPOLIA = [
   { ticker: 'USDC', address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', decimals: 6 },
@@ -84,6 +85,8 @@ const EXTERNAL_WRAP_META = {
   WSTETH: { ticker: 'cwstETH', tacitDecimals: 8, unitScale: '10000000000', permitType: 'eip2612',
     permitName: 'Wrapped liquid staked Ether 2.0', permitVersion: '1',
     description: 'Confidential wstETH (Lido wrapped staked ETH) in the Tacit pool.' },
+  SPX: { ticker: 'cSPX', tacitDecimals: 8, unitScale: '1', permitType: 'permit2',
+    description: 'Confidential SPX6900 in the Tacit pool.' },
 };
 
 function registeredExternalPoolAssets(d) {

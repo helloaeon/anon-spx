@@ -23,7 +23,7 @@
 // --deploy-block defaults to manifest.deployBlock (the indexer scan-from height) so it's never silently stale.
 //
 // Usage:
-//   node tools/sync-deployment-config.mjs <manifest.json> [--network signet|mainnet] [--deploy-block N] [--live cETH,cTAC] [--external USDC,USDT,wstETH] [--farm farm.json] [--write]
+//   node tools/sync-deployment-config.mjs <manifest.json> [--network signet|mainnet] [--deploy-block N] [--live cETH,cTAC,cSPX] [--external USDC,USDT,wstETH,SPX] [--farm farm.json] [--write]
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -43,7 +43,7 @@ const liveFlag = flag('live', false);
 const liveTickers = typeof liveFlag === 'string'
   ? liveFlag.split(',').map((t) => t.trim()).filter(Boolean)
   : [];
-// Opt-in, default OFF: the external ERC20s (by public ticker — USDC, USDT, wstETH) whose confidential wrap
+// Opt-in, default OFF: the external ERC20s (by public ticker — USDC, USDT, wstETH, SPX) whose confidential wrap
 // this network advertises. Registration on the pool is permissionless (`registerWrappedAuto`) but per
 // deployment, so a wrap is only advertised once its asset has actually been registered on THIS pool.
 const externalFlag = flag('external', false);
@@ -52,7 +52,7 @@ const externalTickers = typeof externalFlag === 'string'
   : [];
 
 if (!manifestPath) {
-  console.error('usage: node tools/sync-deployment-config.mjs <manifest.json> [--network signet|mainnet] [--deploy-block N] [--live cETH,cTAC] [--external USDC,USDT,wstETH] [--farm farm.json] [--write]');
+  console.error('usage: node tools/sync-deployment-config.mjs <manifest.json> [--network signet|mainnet] [--deploy-block N] [--live cETH,cTAC,cSPX] [--external USDC,USDT,wstETH,SPX] [--farm farm.json] [--write]');
   process.exit(2);
 }
 
@@ -133,15 +133,15 @@ cur[network] = {
   farm,
   assetFactory: opt(manifest.assetFactory || manifest.factory),
   deployBlock: deployBlock != null ? Number(deployBlock) : (cur[network] && cur[network].deployBlock) || undefined,
-  tac: opt(manifest.tac),
+  tac: opt(manifest.tac) || (cur[network] && cur[network].tac),
   // Pool-minted canonical ERC20s (minter = this pool, so per-deployment): the wrap-back targets for cBTC/cUSD.
-  cBtcToken: opt(manifest.cBtcToken),
-  cUsdToken: opt(manifest.cUsdToken),
+  cBtcToken: opt(manifest.cBtcToken) || (cur[network] && cur[network].cBtcToken),
+  cUsdToken: opt(manifest.cUsdToken) || (cur[network] && cur[network].cUsdToken),
   assetIds: {
-    cEth: id32(manifest.cEth),
-    cTac: id32(manifest.cTac),
-    cBtc: id32(manifest.cBtc),
-    cUsd: id32(manifest.cUsd),
+    cEth: id32(manifest.cEth) || (cur[network] && cur[network].assetIds && cur[network].assetIds.cEth),
+    cTac: id32(manifest.cTac) || (cur[network] && cur[network].assetIds && cur[network].assetIds.cTac),
+    cBtc: id32(manifest.cBtc) || (cur[network] && cur[network].assetIds && cur[network].assetIds.cBtc),
+    cUsd: id32(manifest.cUsd) || (cur[network] && cur[network].assetIds && cur[network].assetIds.cUsd),
   },
   // --live <tickers>: the merge loop in confidential-deployments.js flips these tickers' `live:true` for
   // this network. Absent (default) ⇒ key omitted ⇒ the static `live` (false) stands. Conscious gate.
