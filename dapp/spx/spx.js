@@ -1,7 +1,7 @@
 import { secp, keccak_256, sha256, bytesToHex, hexToBytes } from '/vendor/tacit-deps.min.js';
 import { prfBytesToScalar } from '/prf-wallet.js';
 import { makeEvmWallet } from '/evm-wallet.js';
-import { makeConfidentialPoolUx } from '/confidential-pool-ux.js';
+import { makeConfidentialPoolUx } from '/confidential-pool-ux-spx.js';
 import { unifiedAddress } from '/tacit-unified.js';
 import { makeTacitAddress } from '/tacit-address.js';
 import { makeStealthSendStore } from '/confidential-secret-store.js';
