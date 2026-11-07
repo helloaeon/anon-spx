@@ -100,7 +100,7 @@
       <p class="local-note"><span class="local-dot"></span> Ethereum mainnet · transactions require wallet confirmation</p>
     </main>
 
-    <footer><span>SPX private pool</span><span>Powered by <a href="https://github.com/src-company/tacit" target="_blank" rel="noreferrer">Tacit V1</a></span><a href="https://github.com/src-company/tacit/blob/main/docs/BUILD-A-TACIT-DAPP.md" target="_blank" rel="noreferrer">Integration notes ↗</a></footer>
+    <footer><span>SPX private pool</span><span>Powered by <a href="https://github.com/src-company/tacit" target="_blank" rel="noreferrer">Tacit V1</a></span><nav class="footer-links" aria-label="Site resources"><a href="https://github.com/helloaeon/anon-spx/tree/work/spx6900-v1" target="_blank" rel="noreferrer">Code on GitHub ↗</a><button class="docs-open" id="docs-open" type="button" aria-haspopup="dialog" aria-controls="docs-dialog"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 2.75h8l4 4v10.5H4z"/><path d="M12 2.75v4h4M7 10h6M7 13h6"/></svg><span>Docs</span></button></nav></footer>
   </div>
   <dialog class="incoming-dialog" id="incoming-dialog" aria-labelledby="incoming-title"><div class="incoming-dialog-inner"><div class="incoming-dialog-head"><div><h2 id="incoming-title">Activity</h2><p id="incoming-count">Checking for private payments…</p></div><button class="incoming-close" id="incoming-close" type="button" aria-label="Close activity">×</button></div><div class="field-label"><span>Claimable payments</span></div><p class="incoming-empty" id="incoming-empty" hidden>No private payments need claiming.</p><div id="incoming-list" class="incoming-list"></div><section class="activity-section"><div class="field-label"><span>Session activity</span></div><p class="activity-empty" id="activity-empty">Completed and in-progress actions in this session will appear here.</p><div id="activity-list" class="activity-list"></div></section><div class="incoming-actions"><button id="incoming-refresh" type="button">Scan again</button><button id="incoming-done" type="button">Done</button></div></div></dialog>  <dialog class="account-dialog" id="account-dialog" aria-labelledby="account-title">
     <div class="account-dialog-inner">
@@ -111,6 +111,21 @@
       <div class="account-wallet"><span>Wallet</span><strong id="account-wallet-name"></strong></div>
       <button class="account-switch" id="account-switch" type="button">Use another wallet</button>
       <p class="account-reminder">Your wallet, or your key, opens these funds on any device. Keep both to yourself.</p>
+    </div>
+  </dialog>
+  <dialog class="docs-dialog" id="docs-dialog" aria-labelledby="docs-title">
+    <div class="docs-dialog-inner">
+      <div class="docs-dialog-head"><div><p class="docs-kicker">SPX6900 · ETHEREUM MAINNET · TACIT V1</p><h2 id="docs-title">How anon.spx works</h2></div><button class="docs-close" id="docs-close" type="button" aria-label="Close documentation">×</button></div>
+      <div class="docs-content">
+        <section><h3>Your private account</h3><p>Connect an Ethereum wallet and sign Tacit’s identity message. The signature derives your Tacit account in this browser. The same wallet can reopen it. Never share your recovery phrase or private account key.</p></section>
+        <section><h3>Shield SPX</h3><p>Choose an amount and approve the exact SPX6900 token transfer in your wallet. The deposit enters SPX’s registered asset in the existing Tacit V1 pool, where a relay settles it into a private note.</p></section>
+        <section><h3>Send and claim</h3><p>Send from a private note to a recipient’s Ethereum mainnet <code>tacit1…</code> address. The recipient scans for the one-time payment and claims it into their private balance. An unclaimed payment can be refunded by its sender after 90 days.</p></section>
+        <section><h3>Withdraw</h3><p>Choose a private note and an Ethereum destination. The relay submits the proof and pays SPX to that address. The public chain shows the withdrawal destination and amount.</p></section>
+        <section><h3>Split and merge notes</h3><p>In <b>Notes</b>, select multiple notes to merge or select one note to split into two. The relay fee is accounted for in the resulting notes.</p></section>
+        <section><h3>Activity</h3><p>The Activity popup lists payments waiting to be claimed and actions recorded during this browser session. It shows whether an action is in progress or complete and links to its Ethereum transaction when available. Claimed payments are removed from the refundable list.</p></section>
+        <section class="docs-notice"><h3>Network and privacy</h3><p>This app is configured for Ethereum mainnet and SPX6900. Proofs are created in your browser; Tacit’s existing services and Ethereum RPC providers support scans and settlement. Deposits and withdrawals are public token transfers. The pool obscures which private note funds an action, though public amounts and timing can still be correlated.</p><p>Review the network, amount, and destination in your wallet before confirming a transaction.</p></section>
+      </div>
+      <div class="docs-dialog-foot"><a href="https://github.com/src-company/tacit/blob/main/docs/EVM-POOL.md" target="_blank" rel="noreferrer">Tacit V1 docs ↗</a></div>
     </div>
   </dialog>
   <script type="module" src="/spx/spx.js"></script>
