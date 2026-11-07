@@ -406,7 +406,7 @@ async function manageNotes(kind) {
   busy(true); recordActivity(verb, amount, '', 'In progress');
   setStatus(kind === 'merge' ? 'Combining selected notes into a new private note…' : 'Splitting the selected note into two private notes…');
   try {
-    const fee = await ux.quoteOpFee(ux.poolTickerOf(notes[0].asset), 'transfer');
+    const fee = await ux.quoteOpFee(TICKER, 'transfer');
     const inputTotal = notes.reduce((sum, note) => sum + BigInt(note.value), 0n);
     if (amount + BigInt(fee) > inputTotal) throw new Error(`The selected notes need to cover the relay fee of ${fmtUnits(fee)} SPX too. Use MAX AFTER FEE or lower the output amount.`);
     if (kind === 'split' && amount + BigInt(fee) >= inputTotal) throw new Error('The note needs enough value for both outputs and the relay fee. Choose a smaller first note amount.');
@@ -440,7 +440,7 @@ $('merge-max').addEventListener('click', () => {
     if (!notes.length) return;
     try {
       const total = notes.reduce((sum, note) => sum + BigInt(note.value), 0n);
-      const fee = await ux.quoteOpFee(ux.poolTickerOf(notes[0].asset), 'transfer');
+      const fee = await ux.quoteOpFee(TICKER, 'transfer');
       $('merge-amount').value = fmtUnits(total > BigInt(fee) ? total - BigInt(fee) : 0n, DECIMALS, DECIMALS);
     } catch (e) { setStatus(e?.message || String(e), 'error'); }
   })();
