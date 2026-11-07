@@ -508,3 +508,7 @@ $('account-switch').addEventListener('click', async () => {
 });
 
 window.addEventListener('pagehide', () => { try { state.walletPriv?.fill(0); if (state.identity) state.identity.priv = ''; } catch { } });
+
+$('docs-open').addEventListener('click', () => $('docs-dialog').showModal());
+$('docs-close').addEventListener('click', () => $('docs-dialog').close());
+$('docs-dialog').addEventListener('click', (event) => { if (event.target === $('docs-dialog')) $('docs-dialog').close(); });
