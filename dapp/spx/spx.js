@@ -45,6 +45,7 @@ function busy(on) {
   $('shield-btn').disabled = on;
   $('withdraw-btn').disabled = on;
   $('send-btn').disabled = on;
+  $('merge-btn').disabled = $('split-btn').disabled = on;
   $('connect-btn').disabled = on;
 }
 function activityKey(){return `spx:v1:activity:${state.identity?.pubHex||''}`}function readActivity(){try{return JSON.parse(sessionStorage.getItem(activityKey())||'[]').slice(0,50)}catch{return[]}}function recordActivity(action,amount,txHash='',status='Complete'){if(!state.identity)return;const entries=readActivity();const prior=entries.findIndex(e=>e.action===action&&String(e.amount)===String(amount)&&e.status==='In progress');const entry={action,amount:String(amount),txHash:String(txHash||''),timestamp:Date.now(),status};if(prior>=0)entries.splice(prior,1);entries.unshift(entry);try{sessionStorage.setItem(activityKey(),JSON.stringify(entries.slice(0,50)))}catch{}renderActivity()}function renderActivity(){if(!state.identity||!$('activity-list'))return;const entries=readActivity(),list=$('activity-list');list.replaceChildren();$('activity-empty').hidden=Boolean(entries.length);for(const entry of entries){const row=document.createElement('div');row.className='activity-row';const details=document.createElement('div');details.className='activity-details';const label=document.createElement('strong');label.textContent=`${entry.action} · ${fmtUnits(entry.amount)} SPX`;const date=document.createElement('time');date.dateTime=new Date(entry.timestamp).toISOString();date.textContent=new Date(entry.timestamp).toLocaleString();const status=document.createElement('span');status.className=`activity-status activity-status-${String(entry.status||'Complete').toLowerCase().replace(/[^a-z]+/g,'-')}`;status.textContent=entry.status||'Complete';details.append(label,status,date);row.append(details);if(entry.txHash){const link=document.createElement('a');link.href=`https://etherscan.io/tx/${encodeURIComponent(entry.txHash)}`;link.target='_blank';link.rel='noreferrer';link.textContent=`${entry.txHash.slice(0,8)}…${entry.txHash.slice(-6)}`;link.setAttribute('aria-label',`View ${entry.action} transaction on Etherscan`);row.append(link)}list.append(row)}}function pendingKey() { return `spx:v1:pending-wrap:${state.identity?.pubHex || ''}`; }
@@ -146,6 +147,10 @@ async function refreshAll() {
   $('send-note-select').innerHTML = state.notes.length
     ? state.notes.map((n, i) => `<option value="${i}">${fmtUnits(n.value)} SPX · note ${i + 1}</option>`).join('')
     : '<option value="">No private SPX notes found</option>';
+  $('split-note-select').innerHTML = state.notes.length
+    ? state.notes.map((n, i) => `<option value="${i}">${fmtUnits(n.value)} SPX · note ${i + 1}</option>`).join('')
+    : '<option value="">No private SPX notes found</option>';
+  renderMergeNotes();
   if (state.notes.length) $('withdraw-amount').value = fmtUnits(state.notes[0].value, DECIMALS, DECIMALS);
   if (state.notes.length) $('send-amount').value = fmtUnits(state.notes[0].value, DECIMALS, DECIMALS); try { const lockScan = await ux.scanStealthLocks({ walletPriv: state.walletPriv }); state.lockSetRoot = lockScan.lockSetRoot; state.incomingLocks = (lockScan.mine || []).filter((lock) => String(lock.asset).toLowerCase() === String(asset.assetId).toLowerCase() && lock.spent !== true); renderIncomingClaims(true); } catch (e) { state.incomingLocks = []; state.lockSetRoot = null; renderIncomingClaims(false, e?.message || String(e)); }
   renderPending();
@@ -341,12 +346,76 @@ async function refundSent(index, button) {
 }
 
 function setTab(which) {
-  for (const tab of ['shield', 'withdraw', 'send']) {
+  for (const tab of ['shield', 'withdraw', 'send', 'notes']) {
     const active = which === tab;
     $(`tab-${tab}`).classList.toggle('active', active);
     $(`tab-${tab}`).setAttribute('aria-selected', String(active));
     $(`panel-${tab}`).hidden = !active;
   }
+}
+
+function selectedMergeNotes() {
+  return [...$('merge-note-list').querySelectorAll('input[type="checkbox"]:checked')]
+    .map((input) => state.notes[Number(input.value)]).filter(Boolean);
+}
+function renderMergeNotes() {
+  const list = $('merge-note-list');
+  $('select-all-notes').textContent = 'SELECT ALL';
+  list.replaceChildren();
+  if (!state.notes.length) {
+    const empty = document.createElement('p'); empty.className = 'note-tool-empty';
+    empty.textContent = state.walletPriv ? 'No private SPX notes found.' : 'Connect your wallet to scan notes.';
+    list.append(empty); $('merge-total').textContent = '0 SPX selected'; return;
+  }
+  for (const [i, note] of state.notes.entries()) {
+    const label = document.createElement('label'); label.className = 'merge-note';
+    const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.value = String(i);
+    const amount = document.createElement('span'); amount.textContent = `${fmtUnits(note.value)} SPX`;
+    const index = document.createElement('small'); index.textContent = `NOTE ${i + 1}`;
+    label.append(checkbox, amount, index); list.append(label);
+    checkbox.addEventListener('change', updateMergeTotal);
+  }
+  updateMergeTotal();
+}
+function updateMergeTotal() {
+  const selected = selectedMergeNotes();
+  const total = selected.reduce((sum, note) => sum + BigInt(note.value), 0n);
+  $('merge-total').textContent = `${fmtUnits(total)} SPX selected · ${selected.length} note${selected.length === 1 ? '' : 's'}`;
+  if (selected.length) $('merge-amount').value = fmtUnits(total, DECIMALS, DECIMALS);
+}
+async function manageNotes(kind) {
+  if (!state.walletPriv) return setStatus('Connect your wallet first.');
+  let notes, amount, verb;
+  try {
+    if (kind === 'merge') {
+      notes = selectedMergeNotes();
+      if (notes.length < 2) throw new Error('Select at least two notes to merge.');
+      amount = parseUnits($('merge-amount').value);
+      const total = notes.reduce((sum, note) => sum + BigInt(note.value), 0n);
+      if (amount <= 0n || amount > total) throw new Error('Merged note amount must be greater than zero and no more than the selected notes total.');
+      verb = 'Note merge';
+    } else {
+      const i = Number($('split-note-select').value);
+      const note = Number.isInteger(i) ? state.notes[i] : null;
+      if (!note) throw new Error('Choose a private note to split.');
+      amount = parseUnits($('split-amount').value);
+      if (amount <= 0n || amount >= BigInt(note.value)) throw new Error('The first split amount must be greater than zero and smaller than the note.');
+      notes = [note]; verb = 'Note split';
+    }
+  } catch (e) { setStatus(e?.message || String(e), 'error'); return; }
+  busy(true); recordActivity(verb, amount, '', 'In progress');
+  setStatus(kind === 'merge' ? 'Combining selected notes into a new private note…' : 'Splitting the selected note into two private notes…');
+  try {
+    const fee = await ux.quoteOpFee(ux.poolTickerOf(notes[0].asset), 'transfer');
+    const inputTotal = notes.reduce((sum, note) => sum + BigInt(note.value), 0n);
+    if (amount + BigInt(fee) > inputTotal) throw new Error(`The selected notes need to cover the relay fee of ${fmtUnits(fee)} SPX too. Use MAX AFTER FEE or lower the output amount.`);
+    if (kind === 'split' && amount + BigInt(fee) >= inputTotal) throw new Error('The note needs enough value for both outputs and the relay fee. Choose a smaller first note amount.');
+    const result = await ux.transfer({ walletPriv: state.walletPriv, notes, recipientPubHex: state.identity.pubHex, amount, fee, waitOpts: { timeoutMs: 15 * 60 * 1000 } });
+    recordActivity(verb, amount, result?.txHash || '', 'Complete');
+    setStatus(kind === 'merge' ? 'Notes merged into your private balance.' : 'Note split into two private notes.', 'ok');
+    await refreshAll();
+  } catch (e) { recordActivity(verb, amount, '', 'Failed'); setStatus(e?.message || String(e), 'error'); }
+  finally { busy(false); }
 }
 
 $('connect-btn').addEventListener('click', connect);
@@ -356,6 +425,42 @@ $('send-btn').addEventListener('click', sendPrivate);
 $('tab-shield').addEventListener('click', () => setTab('shield'));
 $('tab-withdraw').addEventListener('click', () => setTab('withdraw'));
 $('tab-send').addEventListener('click', () => { setTab('send'); renderSentPayments(); });
+$('tab-notes').addEventListener('click', () => setTab('notes'));
+$('merge-btn').addEventListener('click', () => manageNotes('merge'));
+$('split-btn').addEventListener('click', () => manageNotes('split'));
+$('select-all-notes').addEventListener('click', () => {
+  const boxes = [...$('merge-note-list').querySelectorAll('input[type="checkbox"]')];
+  const allChecked = boxes.length > 0 && boxes.every((box) => box.checked);
+  boxes.forEach((box) => { box.checked = !allChecked; }); updateMergeTotal();
+  $('select-all-notes').textContent = allChecked ? 'SELECT ALL' : 'CLEAR SELECTION';
+});
+$('merge-max').addEventListener('click', () => {
+  (async () => {
+    const notes = selectedMergeNotes();
+    if (!notes.length) return;
+    try {
+      const total = notes.reduce((sum, note) => sum + BigInt(note.value), 0n);
+      const fee = await ux.quoteOpFee(ux.poolTickerOf(notes[0].asset), 'transfer');
+      $('merge-amount').value = fmtUnits(total > BigInt(fee) ? total - BigInt(fee) : 0n, DECIMALS, DECIMALS);
+    } catch (e) { setStatus(e?.message || String(e), 'error'); }
+  })();
+});
+$('split-half').addEventListener('click', () => {
+  const i = Number($('split-note-select').value), note = Number.isInteger(i) ? state.notes[i] : null;
+  if (note) $('split-amount').value = fmtUnits(BigInt(note.value) / 2n, DECIMALS, DECIMALS);
+});
+$('split-note-select').addEventListener('change', () => {
+  const i = Number($('split-note-select').value), note = Number.isInteger(i) ? state.notes[i] : null;
+  if (note) $('split-amount').value = fmtUnits(BigInt(note.value) / 2n, DECIMALS, DECIMALS);
+});
+$('notes-refresh-btn').addEventListener('click', async () => {
+  if (!state.walletPriv) return setStatus('Connect your wallet first.');
+  busy(true); setStatus('Scanning the V1 pool for your private SPX notes…');
+  try { await refreshAll(); setStatus('Private notes refreshed.', 'ok'); }
+  catch (e) { setStatus(e?.message || String(e), 'error'); }
+  finally { busy(false); }
+});
+
 $('refresh-btn').addEventListener('click', async () => {
   if (!state.walletPriv) return setStatus('Connect your wallet first.');
   busy(true); setStatus('Scanning the V1 pool for your private SPX notes…');

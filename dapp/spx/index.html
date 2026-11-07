@@ -34,7 +34,8 @@
         <div class="tabs" role="tablist" aria-label="SPX action">
           <button class="tab active" id="tab-shield" role="tab" aria-selected="true" aria-controls="panel-shield">Shield</button>
           <button class="tab" id="tab-withdraw" role="tab" aria-selected="false" aria-controls="panel-withdraw">Withdraw</button>
-          <button class="tab" id="tab-send" role="tab" aria-selected="false" aria-controls="panel-send">Send</button> 
+          <button class="tab" id="tab-send" role="tab" aria-selected="false" aria-controls="panel-send">Send</button>
+          <button class="tab" id="tab-notes" role="tab" aria-selected="false" aria-controls="panel-notes">Notes</button> 
         </div>
 
         <div class="panel" id="panel-shield" role="tabpanel" aria-labelledby="tab-shield">
@@ -67,6 +68,24 @@
           <button class="primary-action" id="send-btn" type="button">Send SPX privately <span aria-hidden="true">↗</span></button>
           <p class="form-note">The recipient needs their <code>tacit1…</code> address. Tacit creates a one-time claimable payment; share the transfer with them so they can scan and claim it. Unclaimed funds can be refunded to you after the 90-day deadline.</p>
           <div class="sent-payments" id="sent-payments" hidden><div class="field-label"><span>Sent payments</span><button class="text-button" id="sent-refresh-btn" type="button">REFRESH</button></div><div id="sent-payment-list"></div></div>
+        </div>
+
+        <div class="panel" id="panel-notes" role="tabpanel" aria-labelledby="tab-notes" hidden>
+          <div class="field-label"><label>Merge notes</label><button class="text-button" id="notes-refresh-btn" type="button">REFRESH</button></div>
+          <div class="note-tools" id="merge-note-list" aria-label="Choose notes to merge"></div>
+          <div class="note-tool-actions"><button class="text-button" id="select-all-notes" type="button">SELECT ALL</button><span id="merge-total">0 SPX selected</span></div>
+          <div class="field-label withdraw-amount-label"><label for="merge-amount">Merged note amount</label><button class="text-button" id="merge-max" type="button">MAX AFTER FEE</button></div>
+          <div class="amount-field"><input id="merge-amount" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Amount for merged SPX note"><span>SPX</span></div>
+          <button class="primary-action" id="merge-btn" type="button">Merge selected notes <span aria-hidden="true">↗</span></button>
+          <p class="form-note">Choose multiple notes to combine. Any value above the new note amount remains in a separate change note; the relay fee is accounted for during settlement.</p>
+          <div class="note-split-section">
+            <div class="field-label"><label for="split-note-select">Split one note</label></div>
+            <select id="split-note-select" aria-label="Choose a private SPX note to split"><option value="">Connect wallet to scan notes</option></select>
+            <div class="field-label withdraw-amount-label"><label for="split-amount">First note amount</label><button class="text-button" id="split-half" type="button">HALF</button></div>
+            <div class="amount-field"><input id="split-amount" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Amount for first split note"><span>SPX</span></div>
+            <button class="primary-action" id="split-btn" type="button">Split into two notes <span aria-hidden="true">↗</span></button>
+            <p class="form-note">The remaining value becomes a second note after the relay fee. Use Merge to combine notes again.</p>
+          </div>
         </div>
 
         <div class="status" id="status" role="status" aria-live="polite">Connect an Ethereum wallet to get started.</div>
