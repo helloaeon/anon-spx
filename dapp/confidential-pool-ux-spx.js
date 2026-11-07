@@ -1886,5 +1886,5 @@ export function makeConfidentialPoolUx({ secp, keccak256, sha256, fetchImpl, net
     const checked = await relay.verifyEmittedMemos(landed, [changeLeaf], sub.sealedMemos);
     return { ...out, jobId: sub.jobId, status: checked.status, txHash: checked.txHash, ...(checked.memoCheck ? { memoCheck: checked.memoCheck } : {}) };
   }
-  return { cfg, assetByTicker, account, ethCall, balance, quoteOpFee: gasAwareMinFee, transfer, nextWrapIndex, releaseWrapIndex, buildWrap, submitWrapSettle, waitReceipt: _waitReceipt, sendUnwrap, stealthSend, scanStealthLocks, stealthClaim, scanSentLocks, stealthLockPosition, stealthRefund };
+  return { cfg, assetByTicker, account, ethCall, balance, identity, quoteOpFee: gasAwareMinFee, transfer, nextWrapIndex, releaseWrapIndex, buildWrap, submitWrapSettle, waitReceipt: _waitReceipt, sendUnwrap, stealthSend, scanStealthLocks, stealthClaim, scanSentLocks, stealthLockPosition, stealthRefund };
 }

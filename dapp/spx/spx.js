@@ -410,7 +410,7 @@ async function manageNotes(kind) {
     const inputTotal = notes.reduce((sum, note) => sum + BigInt(note.value), 0n);
     if (amount + BigInt(fee) > inputTotal) throw new Error(`The selected notes need to cover the relay fee of ${fmtUnits(fee)} SPX too. Use MAX AFTER FEE or lower the output amount.`);
     if (kind === 'split' && amount + BigInt(fee) >= inputTotal) throw new Error('The note needs enough value for both outputs and the relay fee. Choose a smaller first note amount.');
-    const result = await ux.transfer({ walletPriv: state.walletPriv, notes, recipientPubHex: state.identity.pubHex, amount, fee, waitOpts: { timeoutMs: 15 * 60 * 1000 } });
+    const result = await ux.transfer({ walletPriv: state.walletPriv, notes, recipientPubHex: ux.identity(state.walletPriv).pubHex, amount, fee, waitOpts: { timeoutMs: 15 * 60 * 1000 } });
     recordActivity(verb, amount, result?.txHash || '', 'Complete');
     setStatus(kind === 'merge' ? 'Notes merged into your private balance.' : 'Note split into two private notes.', 'ok');
     await refreshAll();
