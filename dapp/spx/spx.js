@@ -81,7 +81,8 @@ async function connect() {
     state.identity = identity;
     state.walletPriv = walletPriv;
     state.account = ux.account(walletPriv);
-    state.tacitAddress = unifiedAddress(walletPriv).address;
+    const { chainAddressHash } = await import('/tacit-chain-address.js');
+    state.tacitAddress = unifiedAddress(walletPriv, chainAddressHash(walletPriv)).address;
     $('connect-btn').textContent = 'Lock wallet';
     $('mobile-connect').hidden = true;
     $('tacit-address-mobile').hidden = false;
