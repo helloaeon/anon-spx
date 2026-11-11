@@ -436,15 +436,15 @@ async function manageNotes(kind) {
 }
 
 $('connect-btn').addEventListener('click', connect);
-$('mobile-connect').addEventListener('click', () => $('connect-btn').click());
+$('mobile-connect').addEventListener('click', connect);
 $('mobile-menu-toggle').addEventListener('click', () => {
   const open = $('mobile-menu').hidden;
   $('mobile-menu').hidden = !open;
   $('mobile-menu-toggle').setAttribute('aria-expanded', String(open));
   $('mobile-menu-toggle').setAttribute('aria-label', open ? 'Close account menu' : 'Open account menu');
 });
-$('mobile-activity').addEventListener('click', () => { closeMobileMenu(); $('incoming-open').click(); });
-$('mobile-lock').addEventListener('click', () => { closeMobileMenu(); $('connect-btn').click(); });
+$('mobile-activity').addEventListener('click', () => { closeMobileMenu(); if (state.walletPriv) $('incoming-dialog').showModal(); });
+$('mobile-lock').addEventListener('click', () => { closeMobileMenu(); lockWallet(); });
 document.addEventListener('click', (event) => { if (!event.target.closest('.mobile-actions') && !event.target.closest('.mobile-menu')) closeMobileMenu(); });
 $('tacit-address-mobile').addEventListener('click', () => $('tacit-address').click());
 $('shield-btn').addEventListener('click', shield);
