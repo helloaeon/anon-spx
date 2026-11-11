@@ -128,8 +128,9 @@ export const TACIT_ADDR_VERSION = 0x00;
 export const TACIT_LANE_BTC = 0x01;
 export const TACIT_LANE_EVM = 0x02;
 export const TACIT_LANE_POOL = 0x04;
+export const TACIT_LANE_CHAIN = 0x08;
 export const TACIT_EVM_IS_SPEND = 0x80;
-const TACIT_LANES_KNOWN = TACIT_LANE_BTC | TACIT_LANE_EVM | TACIT_LANE_POOL | TACIT_EVM_IS_SPEND;
+const TACIT_LANES_KNOWN = TACIT_LANE_BTC | TACIT_LANE_EVM | TACIT_LANE_POOL | TACIT_LANE_CHAIN | TACIT_EVM_IS_SPEND;
 // The pool lane is a bp1… address's payload; its prefix per network (btc-shielded-pool.js ADDRESS_HRP).
 export const POOL_HRP_BY_NETWORK = { mainnet: 'bp', signet: 'tbp' };
 
@@ -149,7 +150,7 @@ export function makeTacitAddress({ secp }) {
   // poolKeys: the 97-byte pool payload (V ‖ A ‖ N), as a bp1… address carries it; see poolKeysOf. With it, an
   // Ethereum-side key equal to the spend key is written as 0x80 rather than repeated; without it the address is the
   // form every app has published since the start (flags 0x03), byte for byte.
-  function encodeTacitAddress({ network, btcSpendPub, btcScanPub, evmOwnerPub, poolKeys }) {
+  function encodeTacitAddress({ network, btcSpendPub, btcScanPub, evmOwnerPub, poolKeys, chainHash }) {
     const hrp = TACIT_HRP_BY_NETWORK[network];
     if (!hrp) throw new Error(`unknown network: ${network}`);
     assertPoint(btcSpendPub, 'btcSpendPub');
@@ -168,6 +169,11 @@ export function makeTacitAddress({ secp }) {
       flags |= TACIT_LANE_POOL;
       payload = _concat(payload, poolKeys);
     }
+    if (chainHash) {
+      if (!(chainHash instanceof Uint8Array) || chainHash.length !== 32) throw new Error('chainHash must be 32 bytes');
+      flags |= TACIT_LANE_CHAIN;
+      payload = _concat(payload, chainHash);
+    }
     return _encode(hrp, _concat(new Uint8Array([TACIT_ADDR_VERSION, flags]), payload));
   }
 
@@ -181,7 +187,7 @@ export function makeTacitAddress({ secp }) {
     if (version !== TACIT_ADDR_VERSION) throw new Error(`unsupported version ${version}`);
     if (!(flags & TACIT_LANE_BTC)) throw new Error('unified address must carry the Bitcoin lane');
     if ((flags & TACIT_LANE_EVM) && (flags & TACIT_EVM_IS_SPEND)) throw new Error('an address names its Ethereum-side key once');
-    const wantLen = 2 + 33 + 33 + ((flags & TACIT_LANE_EVM) ? 33 : 0) + ((flags & TACIT_LANE_POOL) ? 97 : 0);
+    const wantLen = 2 + 33 + 33 + ((flags & TACIT_LANE_EVM) ? 33 : 0) + ((flags & TACIT_LANE_POOL) ? 97 : 0) + ((flags & TACIT_LANE_CHAIN) ? 32 : 0);
     const unknown = flags & ~TACIT_LANES_KNOWN;
     if (unknown ? payloadBytes.length < wantLen : payloadBytes.length !== wantLen) throw new Error(`payload length ${payloadBytes.length} != ${wantLen}`);
     const btcSpendPub = payloadBytes.slice(2, 35);
@@ -198,6 +204,10 @@ export function makeTacitAddress({ secp }) {
       const at = 68 + ((flags & TACIT_LANE_EVM) ? 33 : 0), keys = payloadBytes.slice(at, at + 97);
       assertPoint(keys.slice(0, 33), 'pool view key');
       lanes.pool = { keys, poolAddress: POOL_HRP_BY_NETWORK[network] ? _encode(POOL_HRP_BY_NETWORK[network], keys) : null };
+    }
+    if (flags & TACIT_LANE_CHAIN) {
+      const at = 68 + ((flags & TACIT_LANE_EVM) ? 33 : 0) + ((flags & TACIT_LANE_POOL) ? 97 : 0);
+      lanes.chain = { hash: payloadBytes.slice(at, at + 32) };
     }
     return { network, flags, lanes };
   }
