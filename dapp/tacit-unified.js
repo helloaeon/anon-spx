@@ -1,6 +1,7 @@
 // A Tacit key's unified tacit1… address: its Bitcoin keys (spend, and the BIP-352 scan key of it) and the pool keys
 // every shielded pool pays (the bp1… the ETH pools and the Bitcoin pool share), with the Ethereum-side key marked as
-// the spend key (flags 0x85, 276 characters). The same derivation as dapp/kit/tacit-address-kit.js, from the modules
+// the spend key (flags 0x85, 276 characters). With a chain hash it adds Tacit's chain lane (flags 0x8d, 328 characters).
+// The same derivation as dapp/kit/tacit-address-kit.js, from the modules
 // the apps already load; tests/tacit-address-kit.mjs holds the two to each other.
 import { secp, sha256, keccak_256, hmac, hexToBytes } from './vendor/tacit-deps.min.js';
 import { makeTacitAddress } from './tacit-address.js';
@@ -14,7 +15,7 @@ const pool = makeBtcShieldedPool({ secp, keccak256: keccak_256, sha256 });
 const toBig = (b) => b.reduce((n, x) => (n << 8n) | BigInt(x), 0n);
 
 // key: the 32-byte Tacit key (bytes or hex); left as given. → { address, poolAddress }
-export function unifiedAddress(key) {
+export function unifiedAddress(key, chainHash = null) {
   const k = typeof key === 'string' ? hexToBytes(key.replace(/^0x/, '')) : Uint8Array.from(key);
   let seed = null;
   try {
@@ -23,7 +24,7 @@ export function unifiedAddress(key) {
     const btcScanPub = secp.getPublicKey(hexToBytes(scan.toString(16).padStart(64, '0')), true);
     seed = hmac(sha256, k, POOL_SEED_TAG);
     const w = pool.walletFromSeed(seed, 'mainnet');
-    const address = encodeTacitAddress({ network: 'mainnet', btcSpendPub: spendPub, btcScanPub, evmOwnerPub: spendPub, poolKeys: hexToBytes(w.address.replace(/^0x/, '')) });
+    const address = encodeTacitAddress({ network: 'mainnet', btcSpendPub: spendPub, btcScanPub, evmOwnerPub: spendPub, poolKeys: hexToBytes(w.address.replace(/^0x/, '')), ...(chainHash ? { chainHash } : {}) });
     return { address, poolAddress: w.addressString };
   } finally { k.fill(0); seed?.fill(0); }
 }
