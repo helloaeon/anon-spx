@@ -47,6 +47,13 @@ function busy(on) {
   $('send-btn').disabled = on;
   $('merge-btn').disabled = $('split-btn').disabled = on;
   $('connect-btn').disabled = on;
+  $('mobile-connect').disabled = on;
+}
+function closeMobileMenu() {
+  $('mobile-menu').hidden = true;
+  $('mobile-menu-toggle').setAttribute('aria-expanded', 'false');
+  $('mobile-menu-toggle').setAttribute('aria-label', 'Open account menu');
+}
 }
 function activityKey(){return `spx:v1:activity:${state.identity?.pubHex||''}`}function readActivity(){try{return JSON.parse(sessionStorage.getItem(activityKey())||'[]').slice(0,50)}catch{return[]}}function recordActivity(action,amount,txHash='',status='Complete'){if(!state.identity)return;const entries=readActivity();const prior=entries.findIndex(e=>e.action===action&&String(e.amount)===String(amount)&&e.status==='In progress');const entry={action,amount:String(amount),txHash:String(txHash||''),timestamp:Date.now(),status};if(prior>=0)entries.splice(prior,1);entries.unshift(entry);try{sessionStorage.setItem(activityKey(),JSON.stringify(entries.slice(0,50)))}catch{}renderActivity()}function renderActivity(){if(!state.identity||!$('activity-list'))return;const entries=readActivity(),list=$('activity-list');list.replaceChildren();$('activity-empty').hidden=Boolean(entries.length);for(const entry of entries){const row=document.createElement('div');row.className='activity-row';const details=document.createElement('div');details.className='activity-details';const label=document.createElement('strong');label.textContent=`${entry.action} · ${fmtUnits(entry.amount)} SPX`;const date=document.createElement('time');date.dateTime=new Date(entry.timestamp).toISOString();date.textContent=new Date(entry.timestamp).toLocaleString();const status=document.createElement('span');status.className=`activity-status activity-status-${String(entry.status||'Complete').toLowerCase().replace(/[^a-z]+/g,'-')}`;status.textContent=entry.status||'Complete';details.append(label,status,date);row.append(details);if(entry.txHash){const link=document.createElement('a');link.href=`https://etherscan.io/tx/${encodeURIComponent(entry.txHash)}`;link.target='_blank';link.rel='noreferrer';link.textContent=`${entry.txHash.slice(0,8)}…${entry.txHash.slice(-6)}`;link.setAttribute('aria-label',`View ${entry.action} transaction on Etherscan`);row.append(link)}list.append(row)}}function pendingKey() { return `spx:v1:pending-wrap:${state.identity?.pubHex || ''}`; }
 function readPending() { try { return JSON.parse(localStorage.getItem(pendingKey()) || 'null'); } catch { return null; } }
@@ -77,6 +84,12 @@ async function connect() {
     state.account = ux.account(walletPriv);
     state.tacitAddress = unifiedAddress(walletPriv).address;
     $('connect-btn').textContent = 'Lock wallet';
+    $('mobile-connect').hidden = true;
+    $('tacit-address-mobile').hidden = false;
+    $('tacit-address-mobile').textContent = fmtTacit(state.tacitAddress);
+    $('tacit-address-mobile').title = `Open Tacit account details: ${state.tacitAddress}`;
+    $('tacit-address-mobile').setAttribute('aria-label', `Open Tacit account details ${state.tacitAddress}`);
+    $('mobile-menu-toggle').hidden = false;
     $('tacit-address').hidden = false; $('incoming-open').hidden = false;
     $('tacit-address').textContent = fmtTacit(state.tacitAddress);
     $('tacit-address').title = `Copy Tacit address: ${state.tacitAddress}`;
@@ -103,6 +116,10 @@ function lockWallet() {
   state.identity = null; state.walletPriv = null; state.account = null; state.notes = []; state.walletBalance = 0n; state.incomingLocks = []; state.lockSetRoot = null; state.promptedIncoming.clear(); $('incoming-open').hidden = true; $('incoming-dialog').close();
   state.tacitAddress = '';
   $('connect-btn').textContent = 'Connect wallet';
+  closeMobileMenu();
+  $('mobile-connect').hidden = false;
+  $('tacit-address-mobile').hidden = true; $('tacit-address-mobile').textContent = '';
+  $('mobile-menu-toggle').hidden = true;
   $('tacit-address').hidden = true; $('tacit-address').textContent = ''; $('tacit-address').title = 'Copy your Tacit address'; $('tacit-address').setAttribute('aria-label', 'Copy your Tacit address');
   $('private-address').disabled = true; $('private-address').textContent = 'Connect wallet';
   $('wallet-balance').textContent = 'Connect wallet to view';
@@ -419,6 +436,17 @@ async function manageNotes(kind) {
 }
 
 $('connect-btn').addEventListener('click', connect);
+$('mobile-connect').addEventListener('click', () => $('connect-btn').click());
+$('mobile-menu-toggle').addEventListener('click', () => {
+  const open = $('mobile-menu').hidden;
+  $('mobile-menu').hidden = !open;
+  $('mobile-menu-toggle').setAttribute('aria-expanded', String(open));
+  $('mobile-menu-toggle').setAttribute('aria-label', open ? 'Close account menu' : 'Open account menu');
+});
+$('mobile-activity').addEventListener('click', () => { closeMobileMenu(); $('incoming-open').click(); });
+$('mobile-lock').addEventListener('click', () => { closeMobileMenu(); $('connect-btn').click(); });
+document.addEventListener('click', (event) => { if (!event.target.closest('.mobile-actions') && !event.target.closest('.mobile-menu')) closeMobileMenu(); });
+$('tacit-address-mobile').addEventListener('click', () => $('tacit-address').click());
 $('shield-btn').addEventListener('click', shield);
 $('withdraw-btn').addEventListener('click', withdraw);
 $('send-btn').addEventListener('click', sendPrivate);
