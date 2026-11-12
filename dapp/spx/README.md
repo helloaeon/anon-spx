@@ -45,6 +45,8 @@ The static publish step includes the shared Tacit modules and makes anon.spx the
 
 Shielding requests an SPX allowance and calls the V1 pool's wrap flow. Withdrawals and private sends use Tacit's existing V1 proof and relay flow. A private send creates a one-time claimable payment; unclaimed payments can be refunded after the 90-day deadline.
 
+The browser derives note data and prepares operations. In the default flow, Tacit's relay receives the operation witness, generates the SP1 proof, and submits settlement to V1; proofs are not generated on the user's device. The relay can see the notes an operation spends and creates and how they link within that operation, but it is not given the wallet identity or notes untouched by it.
+
 ## Source and attribution
 
 The anon.spx page is implemented in `index.html`, `spx.css`, and `spx.js`. It imports shared V1 wallet, note, proof, and address modules from the surrounding `dapp/` directory. This repository contains Tacit open-source code; retain its license and attribution when redistributing or modifying those files.
